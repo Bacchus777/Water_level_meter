@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspace>
+    <project>
+        <path>$WS_DIR$\WaterLevelMeter.ewp</path>
+    </project>
+    <batchBuild>
+        <batchDefinition>
+            <name>ALL</name>
+            <member>
+                <project>WaterLevelMeter</project>
+                <configuration>DIYRuZ_WaterLevelMeter</configuration>
+            </member>
+        </batchDefinition>
+    </batchBuild>
+</workspace>
