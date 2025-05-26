@@ -50,10 +50,12 @@
 #define POWER_ON_SENSORS()                                                                                                                 \
     do {                                                                                                                                   \
         HAL_TURN_ON_LED4();                                                                                                                \
+        IO_PUD_PORT(DS18B20_PORT, IO_PUP);                                                                                                 \
     } while (0)
 #define POWER_OFF_SENSORS()                                                                                                                \
     do {                                                                                                                                   \
         HAL_TURN_OFF_LED4();                                                                                                               \
+        IO_PUD_PORT(DS18B20_PORT, IO_PDN);                                                                                                 \
     } while (0)
 
 /*********************************************************************
@@ -94,9 +96,8 @@ static uint8 currentSensorsReadingPhase = 0;
 static void zclApp_HandleKeys(byte shift, byte keys);
 static void zclApp_Report(void);
 static void zclApp_BasicResetCB(void);
-static void zclApp_InitHLKUart(void);
+static void zclApp_InitA02Uart(void);
 static void SerialApp_CallBack(uint8 port, uint8 event);   // Receive data will trigger
-static void zclApp_ReadData(void);
 static void RequestMeasure(void);
 
 static void zclApp_RestoreAttributesFromNV(void);
@@ -104,10 +105,8 @@ static void zclApp_SaveAttributesToNV(void);
 static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAttr, uint8 oper);
 
 static void zclApp_ReadSensors(void);
-//static void zclApp_ReadDS18B20(void);
-//static void zclApp_ReadLumosity(void);
-//static void zclApp_ReadSoilHumidity(void);
-//static void zclApp_ReadOnOff(void);
+static void zclApp_ReadDS18B20(void);
+static void zclApp_SetOutput(void);
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -129,7 +128,7 @@ void zclApp_Init(byte task_id) {
     IO_PUD_PORT(2, IO_PUP);
     POWER_OFF_SENSORS();
 
-    zclApp_InitHLKUart();
+    zclApp_InitA02Uart();
     // this is important to allow connects throught routers
     // to make this work, coordinator should be compiled with this flag #define TP2_LEGACY_ZC
     requestNewTrustCenterLinkKey = FALSE;
@@ -248,39 +247,41 @@ static void zclApp_ReadSensors(void) {
   HalLedSet(HAL_LED_1, HAL_LED_MODE_BLINK);
   switch (currentSensorsReadingPhase++) {
   case 0:
-//        POWER_ON_SENSORS();
-      osal_pwrmgr_device(PWRMGR_ALWAYS_ON);
+      POWER_ON_SENSORS();
       break;
   case 1:
       zclBattery_Report();
       break;
   case 2:
-//        zclApp_ReadDS18B20();
+      zclApp_ReadDS18B20();
       break;
   case 3:
+      osal_pwrmgr_device(PWRMGR_ALWAYS_ON);
       RequestMeasure();
-      osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 60); 
-//      osal_start_timerEx(zclApp_TaskID, APP_READ_SENSORS_EVT, 60);
+      osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 600); 
       break;
   default:
-//      POWER_OFF_SENSORS();
     currentSensorsReadingPhase = 0;
     osal_stop_timerEx(zclApp_TaskID, APP_READ_SENSORS_EVT);
     osal_clear_event(zclApp_TaskID, APP_READ_SENSORS_EVT);
+    POWER_OFF_SENSORS();
     osal_pwrmgr_device(PWRMGR_BATTERY);
     break;
   }
   LREP("currentSensorsReadingPhase %d\r\n", currentSensorsReadingPhase);
 }
-/*
-static void zclApp_ReadOnOff(void) {
+
+
+static void zclApp_SetOutput(void) {
   
-  LREP("zclApp_SoilHumiditySensor_MeasuredValue=%d\r\n", zclApp_SoilHumiditySensor_MeasuredValue);
-  LREP("zclApp_Config.Threshold=%d\r\n", zclApp_Config.Threshold);
-  zclApp_SoilHumiditySensor_Output = (zclApp_SoilHumiditySensor_MeasuredValue < (zclApp_Config.Threshold * 100));
-  if (zclApp_SoilHumiditySensor_Output) {
+  LREP("zclApp_SoilHumiditySensor_MeasuredValue=%d\r\n", zclApp_Percentage);
+  LREP("zclApp_Config.Threshold=%d\r\n", zclApp_Config.MinThreshold);
+  LREP("zclApp_Config.Threshold=%d\r\n", zclApp_Config.MaxThreshold);
+  zclApp_LevelOutput = ((zclApp_Percentage < (zclApp_Config.MaxThreshold * 100)) & (zclApp_Percentage > (zclApp_Config.MinThreshold * 100)) ^ zclApp_Config.InvertOutput) ;
+  if (zclApp_LevelOutput) 
     zclGeneral_SendOnOff_CmdOn(zclApp_FirstEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
-  }
+  else
+    zclGeneral_SendOnOff_CmdOff(zclApp_FirstEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
 
 }
 
@@ -295,7 +296,7 @@ static void zclApp_ReadDS18B20(void) {
     }
 
 }
-*/
+
 static void _delay_us(uint16 microSecs) {
     while (microSecs--) {
         asm("NOP");
@@ -314,44 +315,42 @@ void user_delay_ms(uint32_t period) { _delay_us(1000 * period); }
 static void zclApp_Report(void) 
 { 
   osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 20); 
-//  osal_start_timerEx(zclApp_TaskID, APP_READ_SENSORS_EVT, 300); 
 }
 
 void SerialApp_CallBack(uint8 port, uint8 event)   // Receive data will trigger
 {
-//  if (readHLK)
-//  {
-//  zclApp_PresentValue = 100;
-//  bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, ANALOG_INPUT, ATTRID_PRESENT_VALUE);
 
   uint8 response[RESPONSE_LENGHT] = {0x00};
-    HalUARTRead(HLK_PORT, (uint8 *)&response, sizeof(response) / sizeof(response[0]));
 
-      LREPMaster("CALLBACK UART \r\n");
-      for (int i = 0; i <= (RESPONSE_LENGHT - 1); i++) 
-      {
-        LREP("0x%X ", response[i]);
-      }
-      LREP("\r\n");
-   
-      if (((response[0] + response[1] + response[2]) & 0x00FF) == response[3]){
-        uint16 distance = (response[1] * 256 + response[2]);
-        if (distance > 0) {
-          zclApp_PresentValue = zclApp_Config.TankHeight - distance;
-          zclApp_Percentage = (uint8)(zclApp_PresentValue / zclApp_Config.TankHeight * 100);
-          LREP("PresentValue = %d mm\r\n", (uint16)zclApp_PresentValue);
-          LREP("TankHeight = %d mm\r\n", (uint16)zclApp_Config.TankHeight);
-          LREP("Percentage = %d\r\n", (uint16)(zclApp_Percentage));
-          bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, ANALOG_INPUT, ATTRID_PRESENT_VALUE);
-          osal_pwrmgr_device(PWRMGR_BATTERY);
-      }
+  HalUARTRead(A02_PORT, (uint8 *)&response, sizeof(response) / sizeof(response[0]));
+
+    LREPMaster("CALLBACK UART \r\n");
+    for (int i = 0; i <= (RESPONSE_LENGHT - 1); i++) 
+    {
+      LREP("0x%X ", response[i]);
     }
-    else
-      LREPMaster("ERROR \r\n");
+    LREP("\r\n");
+ 
+    if (((response[0] + response[1] + response[2]) & 0x00FF) == response[3]){
+      uint16 distance = (response[1] * 256 + response[2]);
+      if (distance > 0) {
+        zclApp_PresentValue = zclApp_Config.TankHeight - distance;
+        zclApp_Percentage = (uint8)(zclApp_PresentValue / zclApp_Config.TankHeight * 100);
+        LREP("PresentValue = %d mm\r\n", (uint16)zclApp_PresentValue);
+        LREP("TankHeight = %d mm\r\n", (uint16)zclApp_Config.TankHeight);
+        LREP("Percentage = %d\r\n", (uint16)(zclApp_Percentage));
+        bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, ANALOG_INPUT, ATTRID_PRESENT_VALUE);
+        zclApp_SetOutput();
+    }
+  }
+  else
+    LREPMaster("ERROR \r\n");
+
+  osal_pwrmgr_device(PWRMGR_BATTERY);
 
 }
 
-static void zclApp_InitHLKUart(void) {
+static void zclApp_InitA02Uart(void) {
   halUARTCfg_t halUARTConfig;
   halUARTConfig.configured = TRUE;
   halUARTConfig.baudRate = HAL_UART_BR_9600;
@@ -364,7 +363,7 @@ static void zclApp_InitHLKUart(void) {
   halUARTConfig.intEnable = TRUE;
   halUARTConfig.callBackFunc = SerialApp_CallBack;
   HalUARTInit();
-  if (HalUARTOpen(HLK_PORT, &halUARTConfig) == HAL_UART_SUCCESS) {
+  if (HalUARTOpen(A02_PORT, &halUARTConfig) == HAL_UART_SUCCESS) {
     LREPMaster("Initialized HLK UART \r\n");
   }
 }

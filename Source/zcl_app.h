@@ -25,15 +25,8 @@ extern "C" {
 
 #define FIRST_ENDPOINT          1
 
-#define AIR_COMPENSATION_FORMULA(ADC)   ((0.179 * (double)ADC + 3140.0))
-#define WATER_COMPENSATION_FORMULA(ADC) ((0.146 * (double)ADC + 1980.0))
-
 #define APP_REPORT_DELAY ((uint32) 1800000) //30 minutes
 
-
-/*********************************************************************
- * MACROS
- */
 
 #define R           ACCESS_CONTROL_READ
 #define RR          (R | ACCESS_REPORTABLE)
@@ -44,13 +37,7 @@ extern "C" {
 #define POWER_CFG       ZCL_CLUSTER_ID_GEN_POWER_CFG
 #define ANALOG_INPUT    ZCL_CLUSTER_ID_GEN_ANALOG_INPUT_BASIC
 #define GEN_ON_OFF      ZCL_CLUSTER_ID_GEN_ON_OFF
-
-#define ATTRID_PRESENT_VALUE    ATTRID_IOV_BASIC_PRESENT_VALUE
-#define ATTRID_MIN_THRESHOLD    ATTRID_IOV_BASIC_MIN_PRESENT_VALUE
-#define ATTRID_MAX_THRESHOLD    ATTRID_IOV_BASIC_MAX_PRESENT_VALUE
-#define ATTRID_MAX_VALUE        0xF005
-#define ATTRID_PERC_VALUE       0xF006
-#define ATTRID_PERIOD           0xF007
+#define TEMP            ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT
 
 #define ZCL_UINT8       ZCL_DATATYPE_UINT8
 #define ZCL_UINT16      ZCL_DATATYPE_UINT16
@@ -67,6 +54,7 @@ extern "C" {
 #define ATTRID_MAX_VALUE        0xF005
 #define ATTRID_PERC_VALUE       0xF006
 #define ATTRID_PERIOD           0xF007
+#define ATTRID_INVERT           0xF008
 
 /*********************************************************************
  * TYPEDEFS
@@ -77,6 +65,7 @@ typedef struct {
     float     MaxThreshold;
     float     TankHeight;
     uint16    MeasurementPeriod;
+    bool      InvertOutput;
 } application_config_t;
 
 
@@ -104,6 +93,9 @@ extern const uint8 zclApp_PowerSource;
 
 extern float zclApp_PresentValue; 
 extern float zclApp_Percentage; 
+
+extern int16  zclApp_DS18B20_MeasuredValue;
+extern bool   zclApp_LevelOutput;
 
 extern application_config_t zclApp_Config;
 

@@ -40,6 +40,8 @@ const uint16 zclApp_clusterRevision_all = 0x0002;
 
 float    zclApp_PresentValue  = 0; 
 float    zclApp_Percentage    = 0; 
+int16    zclApp_DS18B20_MeasuredValue = 0;
+bool     zclApp_LevelOutput = FALSE;
 
 // Basic Cluster
 const uint8 zclApp_HWRevision = APP_HWVERSION;
@@ -49,7 +51,7 @@ const uint8 zclApp_StackVersion = 4;
 
 //{lenght, 'd', 'a', 't', 'a'}
 const uint8 zclApp_ManufacturerName[] = {7, 'B', 'a', 'c', 'c', 'h', 'u', 's'};
-const uint8 zclApp_ModelId[] = {17, 'W', 'a', 't', 'e', 'r', ' ', 'l', 'e', 'v', 'e', 'l', ' ', 'm', 'e', 't', 'e', 'r'};
+const uint8 zclApp_ModelId[] = {25, 'B', 'a', 'c', 'c', 'h', 'u', 's', ' ', 'W', 'a', 't', 'e', 'r', ' ', 'l', 'e', 'v', 'e', 'l', ' ', 'm', 'e', 't', 'e', 'r'};
 const uint8 zclApp_PowerSource = POWER_SOURCE_BATTERY;
 
 
@@ -57,6 +59,8 @@ const uint8 zclApp_PowerSource = POWER_SOURCE_BATTERY;
 #define DEFAULT_MaxThreshold        100
 #define DEFAULT_TankHeight          200
 #define DEFAULT_MeasurementPeriod   10
+#define DEFAULT_InvertOutput        FALSE
+
 
 
 application_config_t zclApp_Config = {
@@ -64,6 +68,7 @@ application_config_t zclApp_Config = {
     .MaxThreshold =       DEFAULT_MaxThreshold,
     .TankHeight =         DEFAULT_TankHeight,
     .MeasurementPeriod =  DEFAULT_MeasurementPeriod,
+    .InvertOutput =       DEFAULT_InvertOutput
 };
 
 /*********************************************************************
@@ -93,6 +98,11 @@ CONST zclAttrRec_t zclApp_AttrsFirstEP[] = {
     {ANALOG_INPUT, {ATTRID_MAX_VALUE,     ZCL_SINGLE, RW, (void *)&zclApp_Config.TankHeight}},
     {ANALOG_INPUT, {ATTRID_PERC_VALUE,    ZCL_SINGLE, RR, (void *)&zclApp_Percentage}},
     {ANALOG_INPUT, {ATTRID_PERIOD,        ZCL_UINT16, RW, (void *)&zclApp_Config.MeasurementPeriod}},
+
+    {TEMP, {ATTRID_MS_TEMPERATURE_MEASURED_VALUE, ZCL_INT16, RR, (void *)&zclApp_DS18B20_MeasuredValue}},
+
+    {GEN_ON_OFF, {ATTRID_ON_OFF, ZCL_BOOLEAN, RR, (void *)&zclApp_LevelOutput}},
+    {GEN_ON_OFF, {ATTRID_INVERT, ZCL_BOOLEAN, RW, (void *)&zclApp_Config.InvertOutput}},
 };
 
 
@@ -103,6 +113,7 @@ const cId_t zclApp_InClusterListFirstEP[] = {
   POWER_CFG,
   ZCL_CLUSTER_ID_GEN_IDENTIFY,
   ANALOG_INPUT, 
+  TEMP,
 };
 
 #define APP_MAX_IN_CLUSTERS_FIRST_EP (sizeof(zclApp_InClusterListFirstEP) / sizeof(zclApp_InClusterListFirstEP[0]))
@@ -132,5 +143,6 @@ void zclApp_ResetAttributesToDefaultValues(void) {
     zclApp_Config.MaxThreshold =      DEFAULT_MaxThreshold;
     zclApp_Config.TankHeight =        DEFAULT_TankHeight;
     zclApp_Config.MeasurementPeriod = DEFAULT_MeasurementPeriod;
+    zclApp_Config.InvertOutput =      DEFAULT_InvertOutput;
 }
 

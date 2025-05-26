@@ -45,16 +45,16 @@
 #define BME280_32BIT_ENABLE
 //TODO: refactor ds18b20 driver
 #define DS18B20_PORT 1
-#define DS18B20_PIN 3
+#define DS18B20_PIN 2
 
-#define TSENS_SBIT P1_3
-#define TSENS_BV BV(3)
+#define TSENS_SBIT P1_2
+#define TSENS_BV BV(2)
 #define TSENS_DIR P1DIR
 
 #if defined(HAL_BOARD_METER)
     #define HAL_KEY_P2_INPUT_PINS BV(0)
     #define HAL_KEY_P2_INPUT_PINS_EDGE HAL_KEY_FALLING_EDGE
-    #define HLK_PORT  HAL_UART_PORT_0
+    #define A02_PORT  HAL_UART_PORT_0
     #define HAL_UART_DMA 1
     #define HAL_UART_ISR 0
     #define INT_HEAP_LEN 2060//(2256 - 0xE)
@@ -62,7 +62,7 @@
 #elif defined(HAL_BOARD_CHDTECH_DEV)
     #define HAL_KEY_P2_INPUT_PINS BV(0)
     #define HAL_KEY_P2_INPUT_PINS_EDGE HAL_KEY_FALLING_EDGE
-    #define HLK_PORT  HAL_UART_PORT_1
+    #define A02_PORT  HAL_UART_PORT_1
     #define HAL_UART_DMA 1
     #define HAL_UART_ISR 2
 //    #define POWER_SAVING
