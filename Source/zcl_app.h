@@ -51,6 +51,7 @@ extern "C" {
 #define ATTRID_PRESENT_VALUE    ATTRID_IOV_BASIC_PRESENT_VALUE
 #define ATTRID_MIN_THRESHOLD    ATTRID_IOV_BASIC_MIN_PRESENT_VALUE
 #define ATTRID_MAX_THRESHOLD    ATTRID_IOV_BASIC_MAX_PRESENT_VALUE
+#define ATTRID_OUT_OF_SERVICE   ATTRID_IOV_BASIC_OUT_OF_SERVICE
 #define ATTRID_MAX_VALUE        0xF005
 #define ATTRID_PERC_VALUE       0xF006
 #define ATTRID_PERIOD           0xF007
@@ -96,6 +97,7 @@ extern float zclApp_Percentage;
 
 extern int16  zclApp_DS18B20_MeasuredValue;
 extern bool   zclApp_LevelOutput;
+extern bool   zclApp_OutOfService;
 
 extern application_config_t zclApp_Config;
 

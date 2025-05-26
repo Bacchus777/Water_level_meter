@@ -38,10 +38,11 @@
 const uint16 zclApp_clusterRevision_all = 0x0002;
 
 
-float    zclApp_PresentValue  = 0; 
-float    zclApp_Percentage    = 0; 
+float    zclApp_PresentValue          = 0; 
+float    zclApp_Percentage            = 0; 
 int16    zclApp_DS18B20_MeasuredValue = 0;
-bool     zclApp_LevelOutput = FALSE;
+bool     zclApp_LevelOutput           = FALSE;
+bool     zclApp_OutOfService          = FALSE;
 
 // Basic Cluster
 const uint8 zclApp_HWRevision = APP_HWVERSION;
@@ -92,12 +93,13 @@ CONST zclAttrRec_t zclApp_AttrsFirstEP[] = {
     {POWER_CFG, {ATTRID_POWER_CFG_BATTERY_PERCENTAGE_REMAINING, ZCL_UINT8, RR, (void *)&zclBattery_PercentageRemainig}},
     {POWER_CFG, {ATTRID_POWER_CFG_BATTERY_VOLTAGE_RAW_ADC, ZCL_UINT16, RR, (void *)&zclBattery_RawAdc}},
 
-    {ANALOG_INPUT, {ATTRID_PRESENT_VALUE, ZCL_SINGLE, RR, (void *)&zclApp_PresentValue}},
-    {ANALOG_INPUT, {ATTRID_MIN_THRESHOLD, ZCL_SINGLE, RW, (void *)&zclApp_Config.MinThreshold}},
-    {ANALOG_INPUT, {ATTRID_MAX_THRESHOLD, ZCL_SINGLE, RW, (void *)&zclApp_Config.MaxThreshold}},
-    {ANALOG_INPUT, {ATTRID_MAX_VALUE,     ZCL_SINGLE, RW, (void *)&zclApp_Config.TankHeight}},
-    {ANALOG_INPUT, {ATTRID_PERC_VALUE,    ZCL_SINGLE, RR, (void *)&zclApp_Percentage}},
-    {ANALOG_INPUT, {ATTRID_PERIOD,        ZCL_UINT16, RW, (void *)&zclApp_Config.MeasurementPeriod}},
+    {ANALOG_INPUT, {ATTRID_PRESENT_VALUE,  ZCL_SINGLE,  RR, (void *)&zclApp_PresentValue}},
+    {ANALOG_INPUT, {ATTRID_MIN_THRESHOLD,  ZCL_SINGLE,  RW, (void *)&zclApp_Config.MinThreshold}},
+    {ANALOG_INPUT, {ATTRID_MAX_THRESHOLD,  ZCL_SINGLE,  RW, (void *)&zclApp_Config.MaxThreshold}},
+    {ANALOG_INPUT, {ATTRID_MAX_VALUE,      ZCL_SINGLE,  RW, (void *)&zclApp_Config.TankHeight}},
+    {ANALOG_INPUT, {ATTRID_PERC_VALUE,     ZCL_SINGLE,  RR, (void *)&zclApp_Percentage}},
+    {ANALOG_INPUT, {ATTRID_OUT_OF_SERVICE, ZCL_BOOLEAN, RR, (void *)&zclApp_OutOfService}},
+    {ANALOG_INPUT, {ATTRID_PERIOD,         ZCL_UINT16,  RW, (void *)&zclApp_Config.MeasurementPeriod}},
 
     {TEMP, {ATTRID_MS_TEMPERATURE_MEASURED_VALUE, ZCL_INT16, RR, (void *)&zclApp_DS18B20_MeasuredValue}},
 

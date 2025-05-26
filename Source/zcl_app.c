@@ -225,7 +225,7 @@ static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAt
 static void zclApp_SaveAttributesToNV(void) {
     uint8 writeStatus = osal_nv_write(NW_APP_CONFIG, 0, sizeof(application_config_t), &zclApp_Config);
     LREP("Saving attributes to NV write=%d\r\n", writeStatus);
-    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_EVT, ((uint32) zclApp_Config.MeasurementPeriod * 1000));
+    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_EVT, ((uint32) zclApp_Config.MeasurementPeriod * 60 * 1000));
 }
 
 static void zclApp_RestoreAttributesFromNV(void) {
@@ -277,10 +277,14 @@ static void zclApp_SetOutput(void) {
   LREP("zclApp_SoilHumiditySensor_MeasuredValue=%d\r\n", zclApp_Percentage);
   LREP("zclApp_Config.Threshold=%d\r\n", zclApp_Config.MinThreshold);
   LREP("zclApp_Config.Threshold=%d\r\n", zclApp_Config.MaxThreshold);
-  zclApp_LevelOutput = ((zclApp_Percentage < (zclApp_Config.MaxThreshold * 100)) & (zclApp_Percentage > (zclApp_Config.MinThreshold * 100)) ^ zclApp_Config.InvertOutput) ;
-  if (zclApp_LevelOutput) 
+  
+  
+  if (((zclApp_Percentage > (zclApp_Config.MaxThreshold * 100)) & !zclApp_Config.InvertOutput) ^
+      ((zclApp_Percentage < (zclApp_Config.MinThreshold * 100)) &  zclApp_Config.InvertOutput)) 
     zclGeneral_SendOnOff_CmdOn(zclApp_FirstEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
-  else
+  
+  if (((zclApp_Percentage < (zclApp_Config.MinThreshold * 100)) & !zclApp_Config.InvertOutput) ^
+      ((zclApp_Percentage > (zclApp_Config.MaxThreshold * 100)) & zclApp_Config.InvertOutput)) 
     zclGeneral_SendOnOff_CmdOff(zclApp_FirstEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
 
 }
@@ -319,32 +323,35 @@ static void zclApp_Report(void)
 
 void SerialApp_CallBack(uint8 port, uint8 event)   // Receive data will trigger
 {
-
   uint8 response[RESPONSE_LENGHT] = {0x00};
 
   HalUARTRead(A02_PORT, (uint8 *)&response, sizeof(response) / sizeof(response[0]));
 
-    LREPMaster("CALLBACK UART \r\n");
-    for (int i = 0; i <= (RESPONSE_LENGHT - 1); i++) 
-    {
-      LREP("0x%X ", response[i]);
-    }
-    LREP("\r\n");
- 
-    if (((response[0] + response[1] + response[2]) & 0x00FF) == response[3]){
-      uint16 distance = (response[1] * 256 + response[2]);
-      if (distance > 0) {
-        zclApp_PresentValue = zclApp_Config.TankHeight - distance;
-        zclApp_Percentage = (uint8)(zclApp_PresentValue / zclApp_Config.TankHeight * 100);
-        LREP("PresentValue = %d mm\r\n", (uint16)zclApp_PresentValue);
-        LREP("TankHeight = %d mm\r\n", (uint16)zclApp_Config.TankHeight);
-        LREP("Percentage = %d\r\n", (uint16)(zclApp_Percentage));
-        bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, ANALOG_INPUT, ATTRID_PRESENT_VALUE);
-        zclApp_SetOutput();
+  LREPMaster("CALLBACK UART \r\n");
+  for (int i = 0; i <= (RESPONSE_LENGHT - 1); i++) 
+  {
+    LREP("0x%X ", response[i]);
+  }
+  LREP("\r\n");
+
+  zclApp_OutOfService = TRUE;
+
+  if (((response[0] + response[1] + response[2]) & 0x00FF) == response[3]){
+    uint16 distance = (response[1] * 256 + response[2]);
+    if (distance > 0) {
+      zclApp_PresentValue = zclApp_Config.TankHeight - distance;
+      zclApp_Percentage = (uint8)(zclApp_PresentValue / zclApp_Config.TankHeight * 100);
+      LREP("PresentValue = %d mm\r\n", (uint16)zclApp_PresentValue);
+      LREP("TankHeight = %d mm\r\n", (uint16)zclApp_Config.TankHeight);
+      LREP("Percentage = %d\r\n", (uint16)(zclApp_Percentage));
+      zclApp_OutOfService = FALSE;
+      zclApp_SetOutput();
     }
   }
   else
     LREPMaster("ERROR \r\n");
+  
+  bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, ANALOG_INPUT, ATTRID_PRESENT_VALUE);
 
   osal_pwrmgr_device(PWRMGR_BATTERY);
 
