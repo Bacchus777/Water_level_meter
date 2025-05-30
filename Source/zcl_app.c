@@ -150,7 +150,7 @@ void zclApp_Init(byte task_id) {
     
 
 
-    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_EVT, ((uint32) zclApp_Config.MeasurementPeriod * 1000));
+    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_EVT, ((uint32) zclApp_Config.MeasurementPeriod * 60 * 1000));
 }
 
 uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
