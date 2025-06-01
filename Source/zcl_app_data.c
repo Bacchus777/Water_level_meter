@@ -58,7 +58,7 @@ const uint8 zclApp_PowerSource = POWER_SOURCE_BATTERY;
 
 #define DEFAULT_MinThreshold        0
 #define DEFAULT_MaxThreshold        100
-#define DEFAULT_TankHeight          200
+#define DEFAULT_TankHeight          2000
 #define DEFAULT_MeasurementPeriod   10
 #define DEFAULT_InvertOutput        FALSE
 
